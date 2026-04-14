@@ -9,6 +9,7 @@
     "build": "tsc --project tsconfig.json",
     "build-test": "tsc --project test/tsconfig.json",
     "eslint:fix": "eslint",
+    "prepare": "npm run build",
     "test": "npm run build && npm run build-test && mocha --allowJs test/**/*.js && rimraf **/*.js"
   },
   "files": [
