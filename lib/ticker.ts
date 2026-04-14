@@ -4,126 +4,44 @@ import utils from './utils';
 
 
 /**
- * Read timeout duration in seconds. Default: 5 seconds.
- * @type {number}
+ * Outgoing message flags.
+ * @type {string}
  */
- let read_timeout = 5;
-
- /**
-  * Maximum delay for reconnection attempts. Default: 0 (no delay).
-  * @type {number}
-  */
- let reconnect_max_delay = 0;
- 
- /**
-  * Maximum number of reconnection attempts. Default: 0 (no retries).
-  * @type {number}
-  */
- let reconnect_max_tries = 0;
- 
- /**
-  * Outgoing message flags.
-  * @type {string}
-  */
- let mSubscribe = 'subscribe',
-	 mUnSubscribe = 'unsubscribe',
-	 mSetMode = 'mode';
- 
- /**
-  * Public constants.
-  * @type {string}
-  */
- const modeFull = 'full',
-	   modeQuote = 'quote',
-	   modeLTP = 'ltp';
+let mSubscribe = 'subscribe',
+	mUnSubscribe = 'unsubscribe',
+	mSetMode = 'mode';
 
 /**
- * WebSocket connection instance.
- * @type {(WebSocket | null)}
+ * Public constants.
+ * @type {string}
  */
- let ws: WebSocket | null = null;
+const modeFull = 'full',
+	modeQuote = 'quote',
+	modeLTP = 'ltp';
 
- /**
-  * Event triggers and their associated callbacks.
-  * @type {Object}
-  */
- let triggers: AnyObject = {
-	 'connect': [],
-	 'ticks': [],
-	 'disconnect': [],
-	 'error': [],
-	 'close': [],
-	 'reconnect': [],
-	 'noreconnect': [],
-	 'message': [],
-	 'order_update': []
- };
- 
- /**
-  * Timer for reading data.
-  * @type {any}
-  */
- let read_timer: any = null;
- 
- /**
-  * Timestamp of the last read operation.
-  * @type {any}
-  */
- let last_read: any = 0;
- 
- /**
-  * Flag indicating whether auto-reconnect is enabled.
-  * @type {boolean}
-  */
- let auto_reconnect: boolean = false;
+/**
+ * Default maximum delay for reconnection attempts in seconds.
+ * @type {number}
+ */
+const defaultReconnectMaxDelay: number = 60;
 
- /**
-  * Flag to control reconnection behavior.
-  * @type {boolean}
-  */
- let should_reconnect: boolean = true;
- 
- /**
-  * Current count of reconnection attempts.
-  * @type {number}
-  */
- let current_reconnection_count = 0;
- 
- /**
-  * Last interval used for reconnecting.
-  * @type {any}
-  */
- let last_reconnect_interval: any = 0;
- 
- /**
-  * Current WebSocket URL in use.
-  * @type {string}
-  */
- let current_ws_url: string = '';
- 
- /**
-  * Default maximum delay for reconnection attempts in seconds.
-  * @type {number}
-  */
- const defaultReconnectMaxDelay: number = 60;
- 
- /**
-  * Default maximum number of reconnection attempts.
-  * @type {number}
-  */
- const defaultReconnectMaxRetries: number = 50;
- 
- /**
-  * Maximum allowed value for the number of reconnection attempts.
-  * @type {number}
-  */
- const maximumReconnectMaxRetries: number = 300;
- 
- /**
-  * Minimum allowed value for the maximum delay for reconnection attempts in seconds.
-  * @type {number}
-  */
- const minimumReconnectMaxDelay: number = 5;
+/**
+ * Default maximum number of reconnection attempts.
+ * @type {number}
+ */
+const defaultReconnectMaxRetries: number = 50;
+
+/**
+ * Maximum allowed value for the number of reconnection attempts.
+ * @type {number}
+ */
+const maximumReconnectMaxRetries: number = 300;
+
+/**
+ * Minimum allowed value for the maximum delay for reconnection attempts in seconds.
+ * @type {number}
+ */
+const minimumReconnectMaxDelay: number = 5;
 
 // segment constants
 /**
@@ -131,14 +49,14 @@ import utils from './utils';
  * @type {number}
  */
 const NseCM = 1,
-      NseFO = 2,
-      NseCD = 3,
-      BseCM = 4,
-      BseFO = 5,
-      BseCD = 6,
-      McxFO = 7,
-      McxSX = 8,
-      Indices = 9;
+	NseFO = 2,
+	NseCD = 3,
+	BseCM = 4,
+	BseFO = 5,
+	BseCD = 6,
+	McxFO = 7,
+	McxSX = 8,
+	Indices = 9;
 
 /**
  * @classdesc
@@ -329,6 +247,88 @@ export class KiteTicker implements KiteTickerInterface {
 	root: string;
 
 	/**
+	 * Read timeout duration in seconds. Default: 5 seconds.
+	 * @type {number}
+	 */
+	private read_timeout: number = 5;
+
+	/**
+	 * Maximum delay for reconnection attempts. Default: 0 (no delay).
+	 * @type {number}
+	 */
+	private reconnect_max_delay: number = 0;
+
+	/**
+	 * Maximum number of reconnection attempts. Default: 0 (no retries).
+	 * @type {number}
+	 */
+	private reconnect_max_tries: number = 0;
+
+	/**
+	 * WebSocket connection instance.
+	 * @type {(WebSocket | null)}
+	 */
+	private ws: WebSocket | null = null;
+
+	/**
+	 * Event triggers and their associated callbacks.
+	 * @type {Object}
+	 */
+	private triggers: AnyObject = {
+		'connect': [],
+		'ticks': [],
+		'disconnect': [],
+		'error': [],
+		'close': [],
+		'reconnect': [],
+		'noreconnect': [],
+		'message': [],
+		'order_update': []
+	};
+
+	/**
+	 * Timer for reading data.
+	 * @type {any}
+	 */
+	private read_timer: any = null;
+
+	/**
+	 * Timestamp of the last read operation.
+	 * @type {any}
+	 */
+	private last_read: any = 0;
+
+	/**
+	 * Flag indicating whether auto-reconnect is enabled.
+	 * @type {boolean}
+	 */
+	private auto_reconnect: boolean = false;
+
+	/**
+	 * Flag to control reconnection behavior.
+	 * @type {boolean}
+	 */
+	private should_reconnect: boolean = true;
+
+	/**
+	 * Current count of reconnection attempts.
+	 * @type {number}
+	 */
+	private current_reconnection_count: number = 0;
+
+	/**
+	 * Last interval used for reconnecting.
+	 * @type {any}
+	 */
+	private last_reconnect_interval: any = 0;
+
+	/**
+	 * Current WebSocket URL in use.
+	 * @type {string}
+	 */
+	private current_ws_url: string = '';
+
+	/**
 	 * Creates an instance of KiteTicker.
 	 *
 	 * @constructor
@@ -354,15 +354,15 @@ export class KiteTicker implements KiteTickerInterface {
 	 * @param  {number} [max_delay=60]
 	 */
 	autoReconnect(t: boolean, max_retry: number, max_delay: number) {
-		auto_reconnect = t;
+		this.auto_reconnect = t;
 
 		// Set default values
 		max_retry = max_retry || defaultReconnectMaxRetries;
 		max_delay = max_delay || defaultReconnectMaxDelay;
 
 		// Set reconnect constraints
-		reconnect_max_tries = max_retry >= maximumReconnectMaxRetries ? maximumReconnectMaxRetries : max_retry;
-		reconnect_max_delay = max_delay <= minimumReconnectMaxDelay ? minimumReconnectMaxDelay : max_delay;
+		this.reconnect_max_tries = max_retry >= maximumReconnectMaxRetries ? maximumReconnectMaxRetries : max_retry;
+		this.reconnect_max_delay = max_delay <= minimumReconnectMaxDelay ? minimumReconnectMaxDelay : max_delay;
 	}
 
 	/**
@@ -373,14 +373,14 @@ export class KiteTicker implements KiteTickerInterface {
 	 * 
 	 * @returns {void}
 	 */
-	 connect(): void {
+	connect(): void {
 		// Skip if its already connected
-		if (ws && (ws.readyState === ws.CONNECTING || ws.readyState === ws.OPEN)) return;
+		if (this.ws && (this.ws.readyState === this.ws.CONNECTING || this.ws.readyState === this.ws.OPEN)) return;
 
 		const url = this.root + '?api_key=' + this.api_key +
 			'&access_token=' + this.access_token + '&uid=' + (new Date().getTime().toString());
 
-		ws = new WebSocket(url, {
+		this.ws = new WebSocket(url, {
 			headers: {
 				'X-Kite-Version': '3',
 				'User-Agent': utils.getUserAgent()
@@ -388,65 +388,66 @@ export class KiteTicker implements KiteTickerInterface {
 		});
 
 		// Set binaryType to arraybuffer
-		ws.binaryType = 'arraybuffer';
+		this.ws.binaryType = 'arraybuffer';
 
-		ws.onopen = () => {
+		this.ws.onopen = () => {
 			// Reset last reconnect interval
-			last_reconnect_interval = null;
+			this.last_reconnect_interval = null;
 			// Reset current_reconnection_count attempt
-			current_reconnection_count = 0
+			this.current_reconnection_count = 0
 			// Store current open connection url to check for auto re-connection.
-			if (!current_ws_url) current_ws_url = url;
+			if (!this.current_ws_url) this.current_ws_url = url;
 			// Trigger on connect event
-			trigger('connect');
+			this.trigger('connect');
 			// If there isn't an incoming message in n seconds, assume disconnection.
-			clearInterval(read_timer);
+			clearInterval(this.read_timer);
 
-			last_read = new Date();
-			read_timer = setInterval(() => {
+			this.last_read = new Date();
+			this.read_timer = setInterval(() => {
 				// @ts-ignore
-				if ((new Date() - last_read) / 1000 >= read_timeout) {
+				if ((new Date() - this.last_read) / 1000 >= this.read_timeout) {
 					// reset current_ws_url incase current connection times out
 					// This is determined when last heart beat received time interval
 					// exceeds read_timeout value
-					current_ws_url = '';
-					if (ws) ws.close();
-					clearInterval(read_timer);
+					this.current_ws_url = '';
+					if (this.ws) this.ws.close();
+					clearInterval(this.read_timer);
 					this.triggerDisconnect();
 				}
-			}, read_timeout * 1000);
+			}, this.read_timeout * 1000);
 		};
 
-		ws.onmessage = function (e:any) {
+		this.ws.onmessage = (e: any) => {
 			// Binary tick data.
 			if (e.data instanceof ArrayBuffer) {
 				// Trigger on message event when binary message is received
-				trigger('message', [e.data]);
+				this.trigger('message', [e.data]);
 				if (e.data.byteLength > 2) {
 					const d = parseBinary(e.data);
-					if (d) trigger('ticks', [d]);
+					if (d) this.trigger('ticks', [d]);
 				}
 			} else {
-				parseTextMessage(e.data)
+				this.parseTextMessage(e.data)
 			}
 
 			// Set last read time to check for connection timeout
-			last_read = new Date();
+			this.last_read = new Date();
 		};
 
-		ws.onerror = function (e:any) {
-			trigger('error', [e]);
+		const self = this;
+		this.ws.onerror = function (e: any) {
+			self.trigger('error', [e]);
 
 			// Force close to avoid ghost connections
 			if (this && this.readyState == this.OPEN) this.close();
 		};
 
-		ws.onclose = (e:any) => {
-			trigger('close', [e]);
+		this.ws.onclose = (e: any) => {
+			this.trigger('close', [e]);
 
 			// the ws id doesn't match the current global id,
 			// meaning it's a ghost close event. just ignore.
-			if (current_ws_url && (url != current_ws_url)) return;
+			if (this.current_ws_url && (url != this.current_ws_url)) return;
 
 			this.triggerDisconnect(e);
 		};
@@ -455,28 +456,28 @@ export class KiteTicker implements KiteTickerInterface {
 	attemptReconnection() {
 		// Try reconnecting only so many times.
 		// Or if reconnection is not allowed
-		if ((current_reconnection_count > reconnect_max_tries) || !should_reconnect) {
-			trigger('noreconnect');
+		if ((this.current_reconnection_count > this.reconnect_max_tries) || !this.should_reconnect) {
+			this.trigger('noreconnect');
 			process.exit(1);
 		}
 
-		if (current_reconnection_count > 0) {
-			last_reconnect_interval = Math.pow(2, current_reconnection_count);
-		} else if (!last_reconnect_interval) {
-			last_reconnect_interval = 1;
+		if (this.current_reconnection_count > 0) {
+			this.last_reconnect_interval = Math.pow(2, this.current_reconnection_count);
+		} else if (!this.last_reconnect_interval) {
+			this.last_reconnect_interval = 1;
 		}
 
-		if (last_reconnect_interval > reconnect_max_delay) {
-			last_reconnect_interval = reconnect_max_delay;
+		if (this.last_reconnect_interval > this.reconnect_max_delay) {
+			this.last_reconnect_interval = this.reconnect_max_delay;
 		}
 
-		current_reconnection_count++;
+		this.current_reconnection_count++;
 
-		trigger('reconnect', [current_reconnection_count, last_reconnect_interval]);
+		this.trigger('reconnect', [this.current_reconnection_count, this.last_reconnect_interval]);
 
 		setTimeout(() => {
 			this.connect();
-		}, last_reconnect_interval * 1000);
+		}, this.last_reconnect_interval * 1000);
 	}
 
 	/**
@@ -484,9 +485,9 @@ export class KiteTicker implements KiteTickerInterface {
 	 * @returns {void}
 	 */
 	triggerDisconnect(e?: WebSocket.CloseEvent): void {
-		ws = null;
-		trigger('disconnect', [e]);
-		if (auto_reconnect) this.attemptReconnection();
+		this.ws = null;
+		this.trigger('disconnect', [e]);
+		if (this.auto_reconnect) this.attemptReconnection();
 	}
 
 	/**
@@ -495,12 +496,12 @@ export class KiteTicker implements KiteTickerInterface {
 	 * already in the process of closing or closed.
 	 */
 	disconnect(): void {
-		if (ws && ws.readyState !== WebSocket.CLOSING && ws.readyState !== WebSocket.CLOSED) {
+		if (this.ws && this.ws.readyState !== WebSocket.CLOSING && this.ws.readyState !== WebSocket.CLOSED) {
 			// Stop reconnection mechanism
-			should_reconnect = false;
+			this.should_reconnect = false;
 			// Close and clear the ws object
-			ws.close();
-			ws = null;
+			this.ws.close();
+			this.ws = null;
 		}
 	}
 
@@ -512,7 +513,7 @@ export class KiteTicker implements KiteTickerInterface {
 	 * @returns {boolean} A boolean value indicating whether the WebSocket connection is open.
 	 */
 	connected(): boolean {
-		return (ws !== null && ws.readyState === ws.OPEN);
+		return (this.ws !== null && this.ws.readyState === this.ws.OPEN);
 	}
 
 
@@ -523,8 +524,8 @@ export class KiteTicker implements KiteTickerInterface {
 	 * @param {Function} callback - The callback function
 	 */
 	on<T extends KiteTickerEvents>(e: T, callback: KiteTickerEventCallbacks[T]) {
-		if (triggers.hasOwnProperty(e)) {
-			(triggers as AnyObject)[e].push(callback);
+		if (this.triggers.hasOwnProperty(e)) {
+			(this.triggers as AnyObject)[e].push(callback);
 		}
 	};
 
@@ -535,7 +536,7 @@ export class KiteTicker implements KiteTickerInterface {
 	 */
 	subscribe(tokens: string[] | number[]) {
 		if (tokens.length > 0) {
-			send({ 'a': mSubscribe, 'v': tokens });
+			this.send({ 'a': mSubscribe, 'v': tokens });
 		}
 		return tokens;
 	};
@@ -547,7 +548,7 @@ export class KiteTicker implements KiteTickerInterface {
 	 */
 	unsubscribe(tokens: string[] | number[]) {
 		if (tokens.length > 0) {
-			send({ 'a': mUnSubscribe, 'v': tokens });
+			this.send({ 'a': mUnSubscribe, 'v': tokens });
 		}
 		return tokens;
 	};
@@ -560,7 +561,7 @@ export class KiteTicker implements KiteTickerInterface {
 	 */
 	setMode(mode: string, tokens: string[] | number[]) {
 		if (tokens.length > 0) {
-			send({ 'a': mSetMode, 'v': [mode, tokens] });
+			this.send({ 'a': mSetMode, 'v': [mode, tokens] });
 		}
 		return tokens;
 	};
@@ -575,53 +576,50 @@ export class KiteTicker implements KiteTickerInterface {
 		return parseBinary(binpacks);
 	}
 
+	// send a message via the socket
+	// automatically encodes json if possible
+	/**
+	 * @param {(AnyObject | string)} message
+	 */
+	private send(message: AnyObject | string) {
+		if (!this.ws || this.ws.readyState != this.ws.OPEN) return;
 
-}
+		try {
+			if (typeof (message) == 'object') {
+				message = JSON.stringify(message);
+			}
+			this.ws.send(message);
+		} catch (e) { this.ws.close(); };
+	}
 
-
-// send a message via the socket
-// automatically encodes json if possible
-/**
- * @param {(AnyObject | string)} message
- */
-function send(message: AnyObject | string) {
-	if (!ws || ws.readyState != ws.OPEN) return;
-
-	try {
-		if (typeof (message) == 'object') {
-			message = JSON.stringify(message);
+	// trigger event callbacks
+	/**
+	 * @param {string} e
+	 * @param {?any[]} [args]
+	 * @returns {void}
+	 */
+	private trigger(e: string, args?: any[]): void {
+		if (!this.triggers[e]) return;
+		for (let n = 0; n < this.triggers[e].length; n++) {
+			this.triggers[e][n].apply(this.triggers[e][n], args ? args : []);
 		}
-		ws.send(message);
-	} catch (e) { ws.close(); };
-}
-
-// trigger event callbacks
-
-/**
- * @param {string} e
- * @param {?any[]} [args]
- * @returns {void}
- */
-function trigger(e: string, args?: any[]): void {
-	if (!triggers[e]) return;
-	for (let n = 0; n < triggers[e].length; n++) {
-		triggers[e][n].apply(triggers[e][n], args ? args : []);
-	}
-}
-
-/**
- * @param {(string | AnyObject)} data
- */
-function parseTextMessage(data: string | AnyObject) {
-	try {
-		data = JSON.parse(data as string)
-	} catch (e) {
-		return
 	}
 
-	if ((data as AnyObject).type === 'order') {
-		trigger('order_update', [(data as AnyObject).data]);
+	/**
+	 * @param {(string | AnyObject)} data
+	 */
+	private parseTextMessage(data: string | AnyObject) {
+		try {
+			data = JSON.parse(data as string)
+		} catch (e) {
+			return
+		}
+
+		if ((data as AnyObject).type === 'order') {
+			this.trigger('order_update', [(data as AnyObject).data]);
+		}
 	}
+
 }
 
 // parse received binary message. each message is a combination of multiple tick packets
