@@ -814,6 +814,16 @@ export interface PlaceOrderParams {
      */
     market_protection?: number;
     /**
+     * Set to `true` to allow automatic order slicing for quantities exceeding freeze limits.
+     * @type {?boolean}
+     */
+    autoslice?: boolean;
+    /**
+     * An optional algo ID to associate with the order.
+     * @type {?string}
+     */
+    algo_id?: string;
+    /**
      * @type {?string}
      */
     tag?: string;
